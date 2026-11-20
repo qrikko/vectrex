@@ -12,6 +12,20 @@ enum GameState {
     GAME_STATE_PLAYING
 };
 
+typedef struct {
+    Vector2 local[5];
+    Vector2 world;
+    float rotation;
+    float speed;
+} Player;
+
+Player player = {
+     .local = { { -20.f, 10.f}, {-20.f, -10.f}, {20.f, -10.f}, {40.f, 0.f}, {20.f, 10.f} },
+     .world     = {200.f, 200.f },
+     .rotation  = 0.f, 
+     .speed     =0.f 
+};
+
 typedef enum DIRECTIONS { DIR_N, DIR_NE, DIR_E, DIR_SE, DIR_S, DIR_SW, DIR_W, DIR_NW } DIRECTIONS;
 
 typedef struct Room {
@@ -88,13 +102,6 @@ void draw_room(const Room *room) {
     DrawPolyLines(c, 8, room->core_radius, 22.5f, WHITE);
 }
 
-typedef struct {
-    Vector2 pos;
-    float rotation;
-    float speed;
-} Player;
-Player player = { {200.f, 200.f }, .5f*PI, 0.f };
-
 void update_player(Room *room) {
 
     if (IsKeyDown(KEY_W) && player.speed < 5.f) {
@@ -103,36 +110,52 @@ void update_player(Room *room) {
     if (IsKeyDown(KEY_S) && player.speed < 5.f) {
         player.speed -= 0.1f;
     }
-    if (IsKeyDown(KEY_A) && player.speed < 5.f) {
+    if (IsKeyDown(KEY_A)) {
         player.rotation -= 0.05f;
     }
-    if (IsKeyDown(KEY_D) && player.speed < 5.f) {
+    if (IsKeyDown(KEY_D)) {
         player.rotation += 0.05f;
     }
 
     player.speed = player.speed > 0.f ? player.speed - 0.05f : 0.f;
 
-    Vector2 forward = { cosf(player.rotation), sinf(player.rotation) };
-    Vector2 left    = {-sinf(player.rotation), cosf(player.rotation) };
+    float cos_a = cosf(player.rotation);
+    float sin_a = sinf(player.rotation);
+    Vector2 f = { cos_a, sin_a };
 
-    player.pos.x += forward.x * player.speed;
-    player.pos.y += forward.y * player.speed;
+    player.world.x += f.x * player.speed;
+    player.world.y += f.y * player.speed;
 
+    Vector2 p[6];
+    int i = 0;
+    for (i=0; i<5; i++) {
+        float x = player.local[i].x * cos_a - player.local[i].y * sin_a;
+        float y = player.local[i].x * sin_a + player.local[i].y * cos_a;
+        p[i].x = x + player.world.x;
+        p[i].y = y + player.world.y;
+    }
+
+    p[5].x = p[0].x;
+    p[5].y = p[0].y;
+
+    DrawLineStrip(p, 6, WHITE);
+
+/*
     Rectangle lr;
-    lr.x = player.pos.x-8.f;
-    lr.y = player.pos.y;
+    lr.x = player.world.x-8.f;
+    lr.y = player.world.y;
     lr.width = 6.f;
     lr.height = 24.f;
 
     Rectangle rr;
-    rr.x = player.pos.x+8.f;
-    rr.y = player.pos.y;
+    rr.x = player.world.x+8.f;
+    rr.y = player.world.y;
     rr.width = 6.f;
     rr.height = 24.f;
 
     Rectangle cr;
-    cr.x = player.pos.x - 2.f;
-    cr.y = player.pos.y;
+    cr.x = player.world.x - 2.f;
+    cr.y = player.world.y;
     cr.width = 10.f;
     cr.height = 24.f;
 
@@ -163,7 +186,7 @@ void update_player(Room *room) {
         { cr.x +.5f*cr.width - 1.f,  cr.y+cr.height + 18.f}
     };
     //DrawLineStrip(drill, 5, WHITE);
-
+*/
 }
 
 void update_room(struct Map* map, int room_idx) {
