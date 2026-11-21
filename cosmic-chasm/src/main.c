@@ -59,7 +59,7 @@ Player player = {
          { xmax+8.f,    1.f },
          { xmax+10.f,   -2.f },
          { xmax+12.f,    2.f },
-         { xmax+14.f,   -1.f }
+         { xmax+14.f,   -0.f }
      },
      .world     = {200.f, 200.f },
      .rotation  = 0.f, 
@@ -167,7 +167,7 @@ void update_player(Room *room) {
             last_tick = current_tick;
         }
     }
-
+    //bool shield = IsKeyDown(KEY_LEFT_SHIFT) ? true : false;
 
     player.speed = player.speed > 0.f ? player.speed - 0.05f : 0.f;
 
@@ -198,6 +198,12 @@ void update_player(Room *room) {
 
     DrawLineStrip(p, SHIP_PTS, WHITE);
     DrawLineStrip(drill, DRILL_PTS, WHITE);
+    if (IsKeyDown(KEY_LEFT_SHIFT)) {
+        static float r = 0.f;
+        r-=250.f*GetFrameTime();
+        DrawPolyLines(player.world, 10, 18.f, r, WHITE);
+    }
+
 }
 
 void update_room(struct Map* map, int room_idx) {
