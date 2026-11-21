@@ -5,6 +5,10 @@
 #define GROW_TIME 1.f
 #define GROW_AMOUNT 5.f
 
+#define SHIP_PTS 18
+#define DRILL_PTS 5
+
+int last_tick = -1;
 
 enum GameState {
     GAME_STATE_MENU,
@@ -13,14 +17,50 @@ enum GameState {
 };
 
 typedef struct {
-    Vector2 local[5];
+    Vector2 local[SHIP_PTS];
+    Vector2 drill[5];
     Vector2 world;
     float rotation;
     float speed;
 } Player;
 
+#define xmin -10.f
+#define xmax  10.f
+#define ymax 10.f
+#define bymax 5.f
+
 Player player = {
-     .local = { { -20.f, 10.f}, {-20.f, -10.f}, {20.f, -10.f}, {40.f, 0.f}, {20.f, 10.f} },
+     .local = { 
+         // left
+         { xmin,        ymax },
+         { xmax,        ymax },
+         { xmax+4.f,     bymax+2.f },
+         { xmax,         bymax },
+         { xmin,         bymax },
+         { xmin,        ymax },
+         // body
+         { xmin,         bymax}, 
+         { xmax,         bymax}, 
+         { xmax+6.f,     0.f}, 
+         { xmax,        -bymax}, 
+         { xmin,        -bymax},
+         { xmin,         bymax}, 
+         // right
+         { xmin,       -ymax },
+         { xmax,       -ymax },
+         { xmax+4.f,    -bymax-2.f },
+         { xmax,        -bymax },
+         { xmin,        -bymax },
+         { xmin,       -ymax }
+     },
+     .drill = {
+         // drill
+         { xmax+6.f,    0.f },
+         { xmax+8.f,    1.f },
+         { xmax+10.f,   -2.f },
+         { xmax+12.f,    2.f },
+         { xmax+14.f,   -1.f }
+     },
      .world     = {200.f, 200.f },
      .rotation  = 0.f, 
      .speed     =0.f 
@@ -116,6 +156,18 @@ void update_player(Room *room) {
     if (IsKeyDown(KEY_D)) {
         player.rotation += 0.05f;
     }
+    if (IsKeyDown(KEY_SPACE)) {
+        int current_tick = (int)(GetTime() / 0.05f);
+        if (current_tick != last_tick) { 
+            int i = 0;
+            for (i=0; i<DRILL_PTS; i++) {
+                player.drill[i].y *= -1.f;
+            }
+
+            last_tick = current_tick;
+        }
+    }
+
 
     player.speed = player.speed > 0.f ? player.speed - 0.05f : 0.f;
 
@@ -126,67 +178,26 @@ void update_player(Room *room) {
     player.world.x += f.x * player.speed;
     player.world.y += f.y * player.speed;
 
-    Vector2 p[6];
+    Vector2 p[SHIP_PTS];
     int i = 0;
-    for (i=0; i<5; i++) {
+    for (i=0; i<SHIP_PTS; i++) {
         float x = player.local[i].x * cos_a - player.local[i].y * sin_a;
         float y = player.local[i].x * sin_a + player.local[i].y * cos_a;
         p[i].x = x + player.world.x;
         p[i].y = y + player.world.y;
     }
 
-    p[5].x = p[0].x;
-    p[5].y = p[0].y;
+    Vector2 drill[DRILL_PTS];
 
-    DrawLineStrip(p, 6, WHITE);
+    for (i=0; i<DRILL_PTS; i++) {
+        float x = player.drill[i].x * cos_a - player.drill[i].y * sin_a;
+        float y = player.drill[i].x * sin_a + player.drill[i].y * cos_a;
+        drill[i].x = x + player.world.x;
+        drill[i].y = y + player.world.y;
+    }
 
-/*
-    Rectangle lr;
-    lr.x = player.world.x-8.f;
-    lr.y = player.world.y;
-    lr.width = 6.f;
-    lr.height = 24.f;
-
-    Rectangle rr;
-    rr.x = player.world.x+8.f;
-    rr.y = player.world.y;
-    rr.width = 6.f;
-    rr.height = 24.f;
-
-    Rectangle cr;
-    cr.x = player.world.x - 2.f;
-    cr.y = player.world.y;
-    cr.width = 10.f;
-    cr.height = 24.f;
-
-
-    //DrawRectangleLinesEx(lr, 1.f, WHITE);
-    Vector2 l1 = { lr.x, lr.y+lr.height };
-    Vector2 l2 = { lr.x+lr.width, lr.y+lr.height };
-    Vector2 l3 = { lr.x+.5f*lr.width, lr.y+lr.height + 5.f};
-    //DrawTriangleLines(l1, l2, l3, WHITE);
-
-    //DrawRectangleLinesEx(rr, 1.f, WHITE);
-    Vector2 r1 = { rr.x,                rr.y+rr.height };
-    Vector2 r2 = { rr.x +    rr.width,  rr.y+rr.height };
-    Vector2 r3 = { rr.x +.5f*rr.width,  rr.y+rr.height + 5.f};
-    //DrawTriangleLines(r1, r2, r3, WHITE);
-
-    DrawRectangleLinesEx(cr, 1.f, WHITE);
-    Vector2 c1 = { cr.x,                cr.y+cr.height };
-    Vector2 c2 = { cr.x +    cr.width,  cr.y+cr.height };
-    Vector2 c3 = { cr.x +.5f*cr.width,  cr.y+cr.height + 10.f};
-    DrawTriangleLines(c1, c2, c3, WHITE);
-
-    Vector2 drill[5] = {
-        { cr.x +.5f*cr.width,  cr.y+cr.height + 10.f},
-        { cr.x +.5f*cr.width + 2.f,  cr.y+cr.height + 12.f},
-        { cr.x +.5f*cr.width - 2.f,  cr.y+cr.height + 14.f},
-        { cr.x +.5f*cr.width + 1.f,  cr.y+cr.height + 16.f},
-        { cr.x +.5f*cr.width - 1.f,  cr.y+cr.height + 18.f}
-    };
-    //DrawLineStrip(drill, 5, WHITE);
-*/
+    DrawLineStrip(p, SHIP_PTS, WHITE);
+    DrawLineStrip(drill, DRILL_PTS, WHITE);
 }
 
 void update_room(struct Map* map, int room_idx) {
